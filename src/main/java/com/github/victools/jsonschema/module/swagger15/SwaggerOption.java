@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package com.github.victools.jsonschema.module.template;
-
-import com.github.victools.jsonschema.generator.Module;
-import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
+package com.github.victools.jsonschema.module.swagger15;
 
 /**
- * JSON Schema Generator Module – Template.
+ * Flags to enable/disable certain aspects of the {@link SwaggerModule}'s processing.
  */
-public class TemplateModule implements Module {
-
-    @Override
-    public void applyToConfigBuilder(SchemaGeneratorConfigBuilder builder) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
+public enum SwaggerOption {
+    /**
+     * Use this option to ignore properties annotated with {@code @ApiModelProperty(hidden = true)}.
+     */
+    IGNORING_HIDDEN_PROPERTIES,
+    /**
+     * Use this option to apply alternative property names specified via {@code @ApiModelProperty(name = "...")}.
+     */
+    ENABLE_PROPERTY_NAME_OVERRIDES;
 }
