@@ -1,4 +1,5 @@
 # Java JSON Schema Generator – Module Swagger (1.5)
+[![Build Status](https://travis-ci.org/victools/jsonschema-module-swagger-1.5.svg?branch=master)](https://travis-ci.org/victools/jsonschema-module-swagger-1.5)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.victools/jsonschema-module-swagger-1.5/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.victools/jsonschema-module-swagger-1.5)
 
 Module for the `jsonschema-generator` – deriving JSON Schema attributes from `swagger` (1.5.x) annotations
