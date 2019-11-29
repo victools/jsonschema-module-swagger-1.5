@@ -21,6 +21,7 @@ import com.github.victools.jsonschema.generator.FieldScope;
 import com.github.victools.jsonschema.generator.MethodScope;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigPart;
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -59,12 +60,16 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
+        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
+
         Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
     }
 
     @Test
     public void testApplyToConfigBuilderWithAllOptions() {
-        new SwaggerModule(SwaggerOption.ENABLE_PROPERTY_NAME_OVERRIDES, SwaggerOption.IGNORING_HIDDEN_PROPERTIES)
+        new SwaggerModule(SwaggerOption.ENABLE_PROPERTY_NAME_OVERRIDES, SwaggerOption.IGNORING_HIDDEN_PROPERTIES,
+                SwaggerOption.NO_APIMODEL_DESCRIPTION, SwaggerOption.NO_APIMODEL_TITLE)
                 .applyToConfigBuilder(this.configBuilder);
 
         this.verifyCommonConfigurations();
@@ -84,7 +89,10 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
+        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
         Mockito.verify(this.fieldConfigPart).withPropertyNameOverrideResolver(Mockito.any());
+
+        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
 
         Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
     }
@@ -96,8 +104,21 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
+        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
         Mockito.verify(this.fieldConfigPart).withIgnoreCheck(Mockito.any());
+
+        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
         Mockito.verify(this.methodConfigPart).withIgnoreCheck(Mockito.any());
+
+        Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
+    }
+
+    @Test
+    public void testApplyToConfigBuilderWithoutApiModelTitle() {
+        new SwaggerModule(SwaggerOption.NO_APIMODEL_TITLE)
+                .applyToConfigBuilder(this.configBuilder);
+
+        this.verifyCommonConfigurations();
 
         Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
     }
@@ -171,13 +192,39 @@ public class SwaggerModuleTest {
         Assert.assertEquals(expectedNameOverride, override);
     }
 
+    Object parametersForTestTitleResolver() {
+        return new Object[][]{
+            {"unannotatedField", null},
+            {"exampleWithEmptyApiModel", null},
+            {"exampleWithApiModelTitle", "example title"}
+        };
+    }
+
+    @Test
+    @Parameters
+    public void testTitleResolver(String fieldName, String expectedTitle) {
+        new SwaggerModule().applyToConfigBuilder(this.configBuilder);
+
+        TestType testType = new TestType(TestClassForDescription.class);
+        FieldScope field = testType.getMemberField(fieldName);
+
+        ArgumentCaptor<ConfigFunction<FieldScope, String>> captor = ArgumentCaptor.forClass(ConfigFunction.class);
+        Mockito.verify(this.fieldConfigPart).withTitleResolver(captor.capture());
+        String title = captor.getValue().apply(field);
+        Assert.assertEquals(expectedTitle, title);
+    }
+
     Object parametersForTestDescriptionResolver() {
         return new Object[][]{
             {"unannotatedField", null},
             {"annotatedWithoutValueField", null},
             {"annotatedWithoutValueGetterField", null},
             {"annotatedField", "annotation value 1"},
-            {"annotatedGetterField", "annotation value 2"}
+            {"annotatedGetterField", "annotation value 2"},
+            {"exampleWithEmptyApiModel", null},
+            {"exampleWithApiModelDescription", "type description"},
+            {"exampleWithTwoDescriptions", "property description"},
+            {"exampleWithApiModelTitle", null}
         };
     }
 
@@ -185,6 +232,34 @@ public class SwaggerModuleTest {
     @Parameters
     public void testDescriptionResolver(String fieldName, String expectedDescription) {
         new SwaggerModule().applyToConfigBuilder(this.configBuilder);
+
+        TestType testType = new TestType(TestClassForDescription.class);
+        FieldScope field = testType.getMemberField(fieldName);
+
+        ArgumentCaptor<ConfigFunction<FieldScope, String>> captor = ArgumentCaptor.forClass(ConfigFunction.class);
+        Mockito.verify(this.fieldConfigPart).withDescriptionResolver(captor.capture());
+        String description = captor.getValue().apply(field);
+        Assert.assertEquals(expectedDescription, description);
+    }
+
+    Object parametersForTestDescriptionResolverWithNoApiModelDescription() {
+        return new Object[][]{
+            {"unannotatedField", null},
+            {"annotatedWithoutValueField", null},
+            {"annotatedWithoutValueGetterField", null},
+            {"annotatedField", "annotation value 1"},
+            {"annotatedGetterField", "annotation value 2"},
+            {"exampleWithEmptyApiModel", null},
+            {"exampleWithApiModelDescription", null},
+            {"exampleWithTwoDescriptions", "property description"},
+            {"exampleWithApiModelTitle", null}
+        };
+    }
+
+    @Test
+    @Parameters
+    public void testDescriptionResolverWithNoApiModelDescription(String fieldName, String expectedDescription) {
+        new SwaggerModule(SwaggerOption.NO_APIMODEL_DESCRIPTION).applyToConfigBuilder(this.configBuilder);
 
         TestType testType = new TestType(TestClassForDescription.class);
         FieldScope field = testType.getMemberField(fieldName);
@@ -302,6 +377,12 @@ public class SwaggerModuleTest {
         Object annotatedField;
         boolean annotatedGetterField;
 
+        ExampleWithEmptyApiModel exampleWithEmptyApiModel;
+        ExampleWithApiModelDescription exampleWithApiModelDescription;
+        @ApiModelProperty(value = "property description")
+        ExampleWithApiModelDescription exampleWithTwoDescriptions;
+        ExampleWithApiModelTitle exampleWithApiModelTitle;
+
         public String getUnannotatedField() {
             return this.unannotatedField;
         }
@@ -322,6 +403,18 @@ public class SwaggerModuleTest {
         @ApiModelProperty(value = "annotation value 2")
         public boolean isAnnotatedGetterField() {
             return this.annotatedGetterField;
+        }
+
+        @ApiModel
+        private class ExampleWithEmptyApiModel {
+        }
+
+        @ApiModel(value = "example title")
+        private class ExampleWithApiModelTitle {
+        }
+
+        @ApiModel(description = "type description")
+        private class ExampleWithApiModelDescription {
         }
     }
 

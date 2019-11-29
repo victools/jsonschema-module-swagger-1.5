@@ -27,5 +27,13 @@ public enum SwaggerOption {
     /**
      * Use this option to apply alternative property names specified via {@code @ApiModelProperty(name = "...")}.
      */
-    ENABLE_PROPERTY_NAME_OVERRIDES;
+    ENABLE_PROPERTY_NAME_OVERRIDES,
+    /**
+     * Use this option to NOT set the "description" property (based on {@code @ApiModel(description = "...")}).
+     */
+    NO_APIMODEL_DESCRIPTION,
+    /**
+     * Use this option to NOT set the "title" property (based on {@code @ApiModel(value = "...")}).
+     */
+    NO_APIMODEL_TITLE;
 }

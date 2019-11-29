@@ -24,8 +24,8 @@
     </issueManagement>
 
     <scm>
-        <connection>scm:git:ssh://github.com/victools/jsonschema-module-swagger-1.5.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/victools/jsonschema-module-swagger-1.5.git</developerConnection>
+        <connection>scm:git:https://github.com/victools/jsonschema-module-swagger-1.5.git</connection>
+        <developerConnection>scm:git:https://github.com/victools/jsonschema-module-swagger-1.5.git</developerConnection>
         <url>https://github.com/victools/jsonschema-module-swagger-1.5</url>
         <tag>HEAD</tag>
     </scm>
@@ -58,7 +58,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <version.generator>3.0.0</version.generator>
+        <version.generator>3.4.0</version.generator>
 
         <version.swagger>1.5.22</version.swagger>
         <version.junit>4.12</version.junit>
