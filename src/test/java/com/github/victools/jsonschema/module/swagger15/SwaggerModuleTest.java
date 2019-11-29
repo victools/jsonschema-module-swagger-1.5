@@ -59,12 +59,16 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
+        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
+
         Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
     }
 
     @Test
     public void testApplyToConfigBuilderWithAllOptions() {
-        new SwaggerModule(SwaggerOption.ENABLE_PROPERTY_NAME_OVERRIDES, SwaggerOption.IGNORING_HIDDEN_PROPERTIES)
+        new SwaggerModule(SwaggerOption.ENABLE_PROPERTY_NAME_OVERRIDES, SwaggerOption.IGNORING_HIDDEN_PROPERTIES,
+                SwaggerOption.NO_APIMODEL_DESCRIPTION, SwaggerOption.NO_APIMODEL_TITLE)
                 .applyToConfigBuilder(this.configBuilder);
 
         this.verifyCommonConfigurations();
@@ -84,7 +88,10 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
+        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
         Mockito.verify(this.fieldConfigPart).withPropertyNameOverrideResolver(Mockito.any());
+
+        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
 
         Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
     }
@@ -96,8 +103,21 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
+        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
         Mockito.verify(this.fieldConfigPart).withIgnoreCheck(Mockito.any());
+
+        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
         Mockito.verify(this.methodConfigPart).withIgnoreCheck(Mockito.any());
+
+        Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
+    }
+
+    @Test
+    public void testApplyToConfigBuilderWithoutApiModelTitle() {
+        new SwaggerModule(SwaggerOption.NO_APIMODEL_TITLE)
+                .applyToConfigBuilder(this.configBuilder);
+
+        this.verifyCommonConfigurations();
 
         Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
     }

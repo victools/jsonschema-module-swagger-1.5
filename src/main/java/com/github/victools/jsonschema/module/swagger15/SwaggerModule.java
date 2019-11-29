@@ -76,6 +76,9 @@ public class SwaggerModule implements Module {
         if (this.options.contains(SwaggerOption.IGNORING_HIDDEN_PROPERTIES)) {
             configPart.withIgnoreCheck(this::shouldIgnore);
         }
+        if (!this.options.contains(SwaggerOption.NO_APIMODEL_TITLE)) {
+            configPart.withTitleResolver(this::resolveTitle);
+        }
         configPart.withDescriptionResolver(this::resolveDescription);
         configPart.withNumberExclusiveMinimumResolver(this::resolveNumberExclusiveMinimum);
         configPart.withNumberInclusiveMinimumResolver(this::resolveNumberInclusiveMinimum);
@@ -148,13 +151,27 @@ public class SwaggerModule implements Module {
                 .map(ApiModelProperty::value)
                 .filter(value -> !value.isEmpty())
                 .orElse(null);
-        if (propertyAnnotationValue != null) {
+        if (propertyAnnotationValue != null || this.options.contains(SwaggerOption.NO_APIMODEL_DESCRIPTION)) {
             return propertyAnnotationValue;
         }
         return Optional.ofNullable(member.getType())
                 .map(type -> type.getErasedType().getAnnotation(ApiModel.class))
                 .map(ApiModel::description)
                 .filter(description -> !description.isEmpty())
+                .orElse(null);
+    }
+
+    /**
+     * Look-up a "title" for the given member or its associated getter/field from the member type's {@link ApiModel} annotation's {@code value}.
+     *
+     * @param member targeted field/method
+     * @return title (or {@code null})
+     */
+    protected String resolveTitle(MemberScope<?, ?> member) {
+        return Optional.ofNullable(member.getType())
+                .map(type -> type.getErasedType().getAnnotation(ApiModel.class))
+                .map(ApiModel::value)
+                .filter(title -> !title.isEmpty())
                 .orElse(null);
     }
 
