@@ -18,13 +18,12 @@ package com.github.victools.jsonschema.module.swagger15;
 
 import com.github.victools.jsonschema.generator.FieldScope;
 import com.github.victools.jsonschema.generator.MemberScope;
-import com.github.victools.jsonschema.generator.MethodScope;
 import com.github.victools.jsonschema.generator.Module;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigPart;
+import com.github.victools.jsonschema.generator.TypeScope;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import java.lang.annotation.Annotation;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
@@ -65,6 +64,15 @@ public class SwaggerModule implements Module {
                     .withPropertyNameOverrideResolver(this::resolvePropertyNameOverride);
         }
         this.applyToConfigPart(builder.forMethods());
+
+        if (!this.options.contains(SwaggerOption.NO_APIMODEL_TITLE)) {
+            builder.forTypesInGeneral()
+                    .withTitleResolver(this::resolveTitleForType);
+        }
+        if (!this.options.contains(SwaggerOption.NO_APIMODEL_DESCRIPTION)) {
+            builder.forTypesInGeneral()
+                    .withDescriptionResolver(this::resolveDescriptionForType);
+        }
     }
 
     /**
@@ -76,9 +84,6 @@ public class SwaggerModule implements Module {
         if (this.options.contains(SwaggerOption.IGNORING_HIDDEN_PROPERTIES)) {
             configPart.withIgnoreCheck(this::shouldIgnore);
         }
-        if (!this.options.contains(SwaggerOption.NO_APIMODEL_TITLE)) {
-            configPart.withTitleResolver(this::resolveTitle);
-        }
         configPart.withDescriptionResolver(this::resolveDescription);
         configPart.withNumberExclusiveMinimumResolver(this::resolveNumberExclusiveMinimum);
         configPart.withNumberInclusiveMinimumResolver(this::resolveNumberInclusiveMinimum);
@@ -88,42 +93,14 @@ public class SwaggerModule implements Module {
     }
 
     /**
-     * Retrieves the annotation instance of the given type, either from the field it self or (if not present) from its getter.
-     *
-     * @param <A> type of annotation
-     * @param member field or method to retrieve annotation instance from (or from a field's getter or getter method's field)
-     * @param annotationClass type of annotation
-     * @return annotation instance (or {@code null})
-     * @see MemberScope#getAnnotation(Class)
-     * @see FieldScope#findGetter()
-     * @see MethodScope#findGetterField()
-     */
-    protected <A extends Annotation> Optional<A> getAnnotationFromFieldOrGetter(MemberScope<?, ?> member, Class<A> annotationClass) {
-        A annotation = member.getAnnotation(annotationClass);
-        if (annotation == null) {
-            MemberScope<?, ?> associatedGetterOrField;
-            if (member instanceof FieldScope) {
-                associatedGetterOrField = ((FieldScope) member).findGetter();
-            } else if (member instanceof MethodScope) {
-                associatedGetterOrField = ((MethodScope) member).findGetterField();
-            } else {
-                associatedGetterOrField = null;
-            }
-            annotation = associatedGetterOrField == null ? null : associatedGetterOrField.getAnnotation(annotationClass);
-        }
-        return Optional.ofNullable(annotation);
-    }
-
-    /**
      * Determine whether a given member should be ignored, i.e. excluded from the generated schema.
      *
      * @param member targeted field/method
      * @return whether to ignore the given field/method
      */
     protected boolean shouldIgnore(MemberScope<?, ?> member) {
-        return this.getAnnotationFromFieldOrGetter(member, ApiModelProperty.class)
-                .map(ApiModelProperty::hidden)
-                .orElse(Boolean.FALSE);
+        ApiModelProperty annotation = member.getAnnotationConsideringFieldAndGetter(ApiModelProperty.class);
+        return annotation != null && annotation.hidden();
     }
 
     /**
@@ -133,28 +110,33 @@ public class SwaggerModule implements Module {
      * @return applicable name override (or {@code null})
      */
     protected String resolvePropertyNameOverride(FieldScope field) {
-        return this.getAnnotationFromFieldOrGetter(field, ApiModelProperty.class)
+        return Optional.ofNullable(field.getAnnotationConsideringFieldAndGetter(ApiModelProperty.class))
                 .map(ApiModelProperty::name)
                 .filter(name -> !name.isEmpty() && !name.equals(field.getName()))
                 .orElse(null);
     }
 
     /**
-     * Look-up a "description" for the given member or its associated getter/field from the {@link ApiModelProperty} annotation's {@code value} –
-     * falling-back on the member type's {@link ApiModel} annotation's {@code description}.
+     * Look-up a "description" for the given member or its associated getter/field from the {@link ApiModelProperty} annotation's {@code value}.
      *
      * @param member targeted field/method
      * @return description (or {@code null})
      */
     protected String resolveDescription(MemberScope<?, ?> member) {
-        String propertyAnnotationValue = this.getAnnotationFromFieldOrGetter(member, ApiModelProperty.class)
+        return Optional.ofNullable(member.getAnnotationConsideringFieldAndGetter(ApiModelProperty.class))
                 .map(ApiModelProperty::value)
                 .filter(value -> !value.isEmpty())
                 .orElse(null);
-        if (propertyAnnotationValue != null || this.options.contains(SwaggerOption.NO_APIMODEL_DESCRIPTION)) {
-            return propertyAnnotationValue;
-        }
-        return Optional.ofNullable(member.getType())
+    }
+
+    /**
+     * Look-up a "description" from the given type's {@link ApiModel} annotation's {@code description}.
+     *
+     * @param scope targeted type
+     * @return description (or {@code null})
+     */
+    protected String resolveDescriptionForType(TypeScope scope) {
+        return Optional.ofNullable(scope.getType())
                 .map(type -> type.getErasedType().getAnnotation(ApiModel.class))
                 .map(ApiModel::description)
                 .filter(description -> !description.isEmpty())
@@ -164,11 +146,11 @@ public class SwaggerModule implements Module {
     /**
      * Look-up a "title" for the given member or its associated getter/field from the member type's {@link ApiModel} annotation's {@code value}.
      *
-     * @param member targeted field/method
+     * @param scope targeted type
      * @return title (or {@code null})
      */
-    protected String resolveTitle(MemberScope<?, ?> member) {
-        return Optional.ofNullable(member.getType())
+    protected String resolveTitleForType(TypeScope scope) {
+        return Optional.ofNullable(scope.getType())
                 .map(type -> type.getErasedType().getAnnotation(ApiModel.class))
                 .map(ApiModel::value)
                 .filter(title -> !title.isEmpty())
@@ -182,7 +164,7 @@ public class SwaggerModule implements Module {
      * @return {@link ApiModelProperty} annotation's non-empty {@code allowableValues} (or {@code null})
      */
     private Optional<String> findModelPropertyAllowableValues(MemberScope<?, ?> member) {
-        return this.getAnnotationFromFieldOrGetter(member, ApiModelProperty.class)
+        return Optional.ofNullable(member.getAnnotationConsideringFieldAndGetter(ApiModelProperty.class))
                 .map(ApiModelProperty::allowableValues)
                 .filter(allowableValues -> !allowableValues.isEmpty());
     }

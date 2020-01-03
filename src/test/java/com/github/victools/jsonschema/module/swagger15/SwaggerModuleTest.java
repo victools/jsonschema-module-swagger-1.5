@@ -21,6 +21,8 @@ import com.github.victools.jsonschema.generator.FieldScope;
 import com.github.victools.jsonschema.generator.MethodScope;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigPart;
+import com.github.victools.jsonschema.generator.SchemaGeneratorTypeConfigPart;
+import com.github.victools.jsonschema.generator.TypeScope;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.math.BigDecimal;
@@ -42,14 +44,17 @@ import org.mockito.Mockito;
 public class SwaggerModuleTest {
 
     private SchemaGeneratorConfigBuilder configBuilder;
+    private SchemaGeneratorTypeConfigPart<TypeScope> typesInGeneralConfigPart;
     private SchemaGeneratorConfigPart<FieldScope> fieldConfigPart;
     private SchemaGeneratorConfigPart<MethodScope> methodConfigPart;
 
     @Before
     public void setUp() {
         this.configBuilder = Mockito.mock(SchemaGeneratorConfigBuilder.class);
+        this.typesInGeneralConfigPart = Mockito.spy(new SchemaGeneratorTypeConfigPart<>());
         this.fieldConfigPart = Mockito.spy(new SchemaGeneratorConfigPart<>());
         this.methodConfigPart = Mockito.spy(new SchemaGeneratorConfigPart<>());
+        Mockito.when(this.configBuilder.forTypesInGeneral()).thenReturn(this.typesInGeneralConfigPart);
         Mockito.when(this.configBuilder.forFields()).thenReturn(this.fieldConfigPart);
         Mockito.when(this.configBuilder.forMethods()).thenReturn(this.methodConfigPart);
     }
@@ -60,10 +65,11 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
-        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
-        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verify(this.configBuilder, Mockito.times(2)).forTypesInGeneral();
+        Mockito.verify(this.typesInGeneralConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verify(this.typesInGeneralConfigPart).withDescriptionResolver(Mockito.any());
 
-        Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
+        Mockito.verifyNoMoreInteractions(this.configBuilder, this.typesInGeneralConfigPart, this.fieldConfigPart, this.methodConfigPart);
     }
 
     @Test
@@ -79,7 +85,7 @@ public class SwaggerModuleTest {
 
         Mockito.verify(this.methodConfigPart).withIgnoreCheck(Mockito.any());
 
-        Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
+        Mockito.verifyNoMoreInteractions(this.configBuilder, this.typesInGeneralConfigPart, this.fieldConfigPart, this.methodConfigPart);
     }
 
     @Test
@@ -89,12 +95,13 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
-        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verify(this.configBuilder, Mockito.times(2)).forTypesInGeneral();
+        Mockito.verify(this.typesInGeneralConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verify(this.typesInGeneralConfigPart).withDescriptionResolver(Mockito.any());
+
         Mockito.verify(this.fieldConfigPart).withPropertyNameOverrideResolver(Mockito.any());
 
-        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
-
-        Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
+        Mockito.verifyNoMoreInteractions(this.configBuilder, this.typesInGeneralConfigPart, this.fieldConfigPart, this.methodConfigPart);
     }
 
     @Test
@@ -104,13 +111,15 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
-        Mockito.verify(this.fieldConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verify(this.configBuilder, Mockito.times(2)).forTypesInGeneral();
+        Mockito.verify(this.typesInGeneralConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verify(this.typesInGeneralConfigPart).withDescriptionResolver(Mockito.any());
+
         Mockito.verify(this.fieldConfigPart).withIgnoreCheck(Mockito.any());
 
-        Mockito.verify(this.methodConfigPart).withTitleResolver(Mockito.any());
         Mockito.verify(this.methodConfigPart).withIgnoreCheck(Mockito.any());
 
-        Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
+        Mockito.verifyNoMoreInteractions(this.configBuilder, this.typesInGeneralConfigPart, this.fieldConfigPart, this.methodConfigPart);
     }
 
     @Test
@@ -120,7 +129,23 @@ public class SwaggerModuleTest {
 
         this.verifyCommonConfigurations();
 
-        Mockito.verifyNoMoreInteractions(this.configBuilder, this.fieldConfigPart, this.methodConfigPart);
+        Mockito.verify(this.configBuilder).forTypesInGeneral();
+        Mockito.verify(this.typesInGeneralConfigPart).withDescriptionResolver(Mockito.any());
+
+        Mockito.verifyNoMoreInteractions(this.configBuilder, this.typesInGeneralConfigPart, this.fieldConfigPart, this.methodConfigPart);
+    }
+
+    @Test
+    public void testApplyToConfigBuilderWithoutApiModelDescription() {
+        new SwaggerModule(SwaggerOption.NO_APIMODEL_DESCRIPTION)
+                .applyToConfigBuilder(this.configBuilder);
+
+        this.verifyCommonConfigurations();
+
+        Mockito.verify(this.configBuilder).forTypesInGeneral();
+        Mockito.verify(this.typesInGeneralConfigPart).withTitleResolver(Mockito.any());
+
+        Mockito.verifyNoMoreInteractions(this.configBuilder, this.typesInGeneralConfigPart, this.fieldConfigPart, this.methodConfigPart);
     }
 
     private void verifyCommonConfigurations() {
@@ -208,38 +233,45 @@ public class SwaggerModuleTest {
         TestType testType = new TestType(TestClassForDescription.class);
         FieldScope field = testType.getMemberField(fieldName);
 
-        ArgumentCaptor<ConfigFunction<FieldScope, String>> captor = ArgumentCaptor.forClass(ConfigFunction.class);
-        Mockito.verify(this.fieldConfigPart).withTitleResolver(captor.capture());
+        ArgumentCaptor<ConfigFunction<TypeScope, String>> captor = ArgumentCaptor.forClass(ConfigFunction.class);
+        Mockito.verify(this.typesInGeneralConfigPart).withTitleResolver(captor.capture());
         String title = captor.getValue().apply(field);
         Assert.assertEquals(expectedTitle, title);
     }
 
     Object parametersForTestDescriptionResolver() {
         return new Object[][]{
-            {"unannotatedField", null},
-            {"annotatedWithoutValueField", null},
-            {"annotatedWithoutValueGetterField", null},
-            {"annotatedField", "annotation value 1"},
-            {"annotatedGetterField", "annotation value 2"},
-            {"exampleWithEmptyApiModel", null},
-            {"exampleWithApiModelDescription", "type description"},
-            {"exampleWithTwoDescriptions", "property description"},
-            {"exampleWithApiModelTitle", null}
+            {"unannotatedField", null, null},
+            {"annotatedWithoutValueField", null, null},
+            {"annotatedWithoutValueGetterField", null, null},
+            {"annotatedField", "annotation value 1", null},
+            {"annotatedGetterField", "annotation value 2", null},
+            {"exampleWithEmptyApiModel", null, null},
+            {"exampleWithApiModelDescription", null, "type description"},
+            {"exampleWithTwoDescriptions", "property description", "type description"},
+            {"exampleWithApiModelTitle", null, null}
         };
     }
 
     @Test
     @Parameters
-    public void testDescriptionResolver(String fieldName, String expectedDescription) {
+    public void testDescriptionResolver(String fieldName, String expectedMemberDescription, String expectedTypeDescription) {
         new SwaggerModule().applyToConfigBuilder(this.configBuilder);
 
         TestType testType = new TestType(TestClassForDescription.class);
         FieldScope field = testType.getMemberField(fieldName);
 
-        ArgumentCaptor<ConfigFunction<FieldScope, String>> captor = ArgumentCaptor.forClass(ConfigFunction.class);
-        Mockito.verify(this.fieldConfigPart).withDescriptionResolver(captor.capture());
-        String description = captor.getValue().apply(field);
-        Assert.assertEquals(expectedDescription, description);
+        ArgumentCaptor<ConfigFunction<FieldScope, String>> memberCaptor = ArgumentCaptor.forClass(ConfigFunction.class);
+        Mockito.verify(this.fieldConfigPart).withDescriptionResolver(memberCaptor.capture());
+        String memberDescription = memberCaptor.getValue().apply(field);
+        Assert.assertEquals(expectedMemberDescription, memberDescription);
+
+        ArgumentCaptor<ConfigFunction<TypeScope, String>> typeCaptor = ArgumentCaptor.forClass(ConfigFunction.class);
+        Mockito.verify(this.typesInGeneralConfigPart).withDescriptionResolver(typeCaptor.capture());
+        TypeScope scope = Mockito.mock(TypeScope.class);
+        Mockito.when(scope.getType()).thenReturn(field.getType());
+        String typeDescription = typeCaptor.getValue().apply(scope);
+        Assert.assertEquals(expectedTypeDescription, typeDescription);
     }
 
     Object parametersForTestDescriptionResolverWithNoApiModelDescription() {
@@ -258,7 +290,7 @@ public class SwaggerModuleTest {
 
     @Test
     @Parameters
-    public void testDescriptionResolverWithNoApiModelDescription(String fieldName, String expectedDescription) {
+    public void testDescriptionResolverWithNoApiModelDescription(String fieldName, String expectedMemberDescription) {
         new SwaggerModule(SwaggerOption.NO_APIMODEL_DESCRIPTION).applyToConfigBuilder(this.configBuilder);
 
         TestType testType = new TestType(TestClassForDescription.class);
@@ -267,7 +299,10 @@ public class SwaggerModuleTest {
         ArgumentCaptor<ConfigFunction<FieldScope, String>> captor = ArgumentCaptor.forClass(ConfigFunction.class);
         Mockito.verify(this.fieldConfigPart).withDescriptionResolver(captor.capture());
         String description = captor.getValue().apply(field);
-        Assert.assertEquals(expectedDescription, description);
+        Assert.assertEquals(expectedMemberDescription, description);
+
+        Mockito.verify(this.typesInGeneralConfigPart).withTitleResolver(Mockito.any());
+        Mockito.verifyNoMoreInteractions(this.typesInGeneralConfigPart);
     }
 
     Object parametersForTestNumberMinMaxResolvers() {
