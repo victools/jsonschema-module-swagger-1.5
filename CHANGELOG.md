@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Look-up titles and descriptions from `@ApiModel` via new `forTypesInGeneral()` API
+
+BEWARE: The `forTypesInGeneral()` API was only added to the main generator library in version 4.0.0.
 
 ## [3.1.0] - 2019-11-30
 ### Added
