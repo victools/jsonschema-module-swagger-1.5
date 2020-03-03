@@ -21,7 +21,7 @@ import com.github.victools.jsonschema.generator.FieldScope;
 import com.github.victools.jsonschema.generator.MethodScope;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigPart;
-import com.github.victools.jsonschema.generator.SchemaGeneratorTypeConfigPart;
+import com.github.victools.jsonschema.generator.SchemaGeneratorGeneralConfigPart;
 import com.github.victools.jsonschema.generator.TypeScope;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -44,14 +44,14 @@ import org.mockito.Mockito;
 public class SwaggerModuleTest {
 
     private SchemaGeneratorConfigBuilder configBuilder;
-    private SchemaGeneratorTypeConfigPart<TypeScope> typesInGeneralConfigPart;
+    private SchemaGeneratorGeneralConfigPart typesInGeneralConfigPart;
     private SchemaGeneratorConfigPart<FieldScope> fieldConfigPart;
     private SchemaGeneratorConfigPart<MethodScope> methodConfigPart;
 
     @Before
     public void setUp() {
         this.configBuilder = Mockito.mock(SchemaGeneratorConfigBuilder.class);
-        this.typesInGeneralConfigPart = Mockito.spy(new SchemaGeneratorTypeConfigPart<>());
+        this.typesInGeneralConfigPart = Mockito.spy(new SchemaGeneratorGeneralConfigPart());
         this.fieldConfigPart = Mockito.spy(new SchemaGeneratorConfigPart<>());
         this.methodConfigPart = Mockito.spy(new SchemaGeneratorConfigPart<>());
         Mockito.when(this.configBuilder.forTypesInGeneral()).thenReturn(this.typesInGeneralConfigPart);
