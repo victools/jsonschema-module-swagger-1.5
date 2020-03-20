@@ -25,7 +25,7 @@ Schema attributes derived from `@ApiModelProperty` on getter methods are also ap
 <dependency>
     <groupId>com.github.victools</groupId>
     <artifactId>jsonschema-module-swagger-1.5</artifactId>
-    <version>4.0.0</version>
+    <version>4.7.0</version>
 </dependency>
 ```
 
