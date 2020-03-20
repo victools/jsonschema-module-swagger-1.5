@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfig;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
+import com.github.victools.jsonschema.generator.SchemaVersion;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class IntegrationTest {
         SwaggerModule module = new SwaggerModule(
                 SwaggerOption.ENABLE_PROPERTY_NAME_OVERRIDES,
                 SwaggerOption.IGNORING_HIDDEN_PROPERTIES);
-        SchemaGeneratorConfig config = new SchemaGeneratorConfigBuilder(new ObjectMapper())
+        SchemaGeneratorConfig config = new SchemaGeneratorConfigBuilder(new ObjectMapper(), SchemaVersion.DRAFT_2019_09)
                 .with(module)
                 .build();
         SchemaGenerator generator = new SchemaGenerator(config);
